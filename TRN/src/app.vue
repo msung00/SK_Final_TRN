@@ -1,94 +1,147 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { eventBus } from '@/eventBus' // ✅ 새로 추가 (로그인 즉시 반영용)
+import trnLogo from '@/images/genie.png'
 
-const images = [
-  '/src/images/main1.jpg',
-  '/src/images/main2.jpg',
-  '/src/images/main3.jpg'
-]
+const dark = ref(false)
+const showTop = ref(false)
+const username = ref(eventBus.username) // ✅ eventBus에서 username 실시간 반영
+const router = useRouter()
 
-const current = ref(0)
-let interval
+// eventBus.username 변화 감시해서 즉시 반영
+watch(
+  () => eventBus.username,
+  (newVal) => {
+    username.value = newVal
+  }
+)
 
 onMounted(() => {
-  interval = setInterval(() => {
-    current.value = (current.value + 1) % images.length
-  }, 4000)
+  const saved = localStorage.getItem('trn.dark') === '1'
+  setDark(saved)
+  window.addEventListener('scroll', () => {
+    showTop.value = window.scrollY > 200
+  })
 })
 
-onBeforeUnmount(() => clearInterval(interval))
+function toggleDark() {
+  setDark(!dark.value)
+}
+function setDark(v) {
+  dark.value = v
+  document.documentElement.classList.toggle('dark', v)
+  localStorage.setItem('trn.dark', v ? '1' : '0')
+}
+function scrollTopSmooth() {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+function logout() {
+  localStorage.removeItem('trn.username')
+  eventBus.clear() // ✅ eventBus에 반영
+  router.push('/')
+}
 </script>
 
 <template>
-  <div class="flex flex-col min-h-screen">
-    <!-- 상단 슬라이드 -->
-    <section class="relative w-full h-[85vh] overflow-hidden">
-      <transition name="fade" mode="out-in">
-        <img
-          :key="current"
-          :src="images[current]"
-          alt="슬라이드 이미지"
-          class="absolute w-full h-full object-cover transition duration-700"
-        />
-      </transition>
+  <div
+    class="flex flex-col min-h-screen bg-gray-50 dark:bg-slate-900 dark:text-slate-100 transition-colors"
+  >
+    <!-- 헤더 -->
+    <header
+      class="bg-govblue text-white px-8 py-4 flex justify-between items-center shadow-lg"
+    >
+      <!-- 로고 -->
+      <RouterLink to="/" class="flex items-center gap-2 hover:opacity-90">
+        <img :src="trnLogo" alt="TRN 로고" class="w-8 h-8 object-contain" />
+        <h1 class="text-2xl font-bold tracking-tight">TRN 교육훈련 포털</h1>
+      </RouterLink>
 
-      <!-- 중앙 텍스트 -->
-      <div class="absolute inset-0 bg-black/40 flex flex-col justify-center items-center text-center text-white px-6">
-        <h1 class="text-4xl md:text-5xl font-extrabold mb-3 leading-snug">
-          조직의 발전을 위해<br />개인의 역량 향상을 지원합니다.
-        </h1>
-        <p class="text-lg md:text-xl opacity-90">
-          한국HRD훈련지원센터는 훈련생 여러분의 성장을 응원합니다.
-        </p>
+      <!-- 메뉴 -->
+      <nav class="hidden md:flex gap-6 text-sm font-semibold">
+        <RouterLink to="/" class="hover:text-govsky">홈</RouterLink>
+        <RouterLink to="/training/employer" class="hover:text-govsky">사업주훈련</RouterLink>
+        <RouterLink to="/training/safety" class="hover:text-govsky">산업안전보건교육</RouterLink>
+        <RouterLink to="/training/online" class="hover:text-govsky">사이버연수원</RouterLink>
+        <RouterLink to="/news" class="hover:text-govsky">공지·보도</RouterLink>
+        <RouterLink to="/about" class="hover:text-govsky">기관소개</RouterLink>
+        <RouterLink to="/map" class="hover:text-govsky">오시는 길</RouterLink>
+        <RouterLink to="/contact" class="hover:text-govsky">고객센터</RouterLink>
+      </nav>
+
+      <!-- 로그인 / 로그아웃 / 회원가입 -->
+      <div class="flex items-center gap-3">
+        <template v-if="username">
+          <span class="text-sm font-semibold">{{ username }} 님</span>
+          <button
+            @click="logout"
+            class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg text-sm"
+          >
+            로그아웃
+          </button>
+        </template>
+
+        <template v-else>
+          <RouterLink
+            to="/login"
+            class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg text-sm font-semibold"
+          >
+            로그인
+          </RouterLink>
+          <RouterLink
+            to="/register"
+            class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg text-sm font-semibold"
+          >
+            회원가입
+          </RouterLink>
+        </template>
+
+        <button
+          @click="toggleDark"
+          class="rounded-lg bg-white/15 hover:bg-white/25 px-3 py-1.5 text-sm transition"
+        >
+          {{ dark ? '라이트' : '다크' }}
+        </button>
       </div>
-    </section>
+    </header>
 
-    <!-- 서비스 소개 -->
-    <section class="grid grid-cols-1 md:grid-cols-3 text-center mt-14 mb-20 gap-8 px-8">
-      <div class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg transition">
-        <h3 class="text-xl font-bold mb-2 text-govblue">사업주훈련</h3>
-        <p class="text-slate-600">기업 맞춤형 직업능력 개발훈련 과정 안내</p>
-      </div>
+    <!-- 메인 콘텐츠 -->
+    <main class="flex-grow">
+      <RouterView />
+    </main>
 
-      <div class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg transition">
-        <h3 class="text-xl font-bold mb-2 text-govblue">산업안전보건교육</h3>
-        <p class="text-slate-600">근로자 안전 및 보건 인식 향상 교육 지원</p>
-      </div>
-
-      <div class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg transition">
-        <h3 class="text-xl font-bold mb-2 text-govblue">사이버연수원</h3>
-        <p class="text-slate-600">언제 어디서나 가능한 온라인 학습 플랫폼</p>
-      </div>
-    </section>
-
-    <!-- 하단 푸터 -->
-    <footer class="bg-slate-900 text-slate-300 mt-auto py-10 text-center">
+    <!-- 푸터 -->
+    <footer
+      class="bg-slate-900 text-slate-300 py-10 text-center text-sm mt-16 border-t border-slate-800"
+    >
       <div class="flex flex-wrap justify-center gap-6 mb-4 text-sm">
-        <a href="#" class="hover:text-white">사업주 직업능력개발훈련 안내</a>
-        <a href="#" class="hover:text-white">이용약관</a>
-        <a href="#" class="hover:text-white">개인정보처리방침</a>
+        <RouterLink to="/training/employer" class="hover:text-white">사업주훈련</RouterLink>
+        <RouterLink to="/training/safety" class="hover:text-white">산업안전보건교육</RouterLink>
+        <RouterLink to="/training/online" class="hover:text-white">사이버연수원</RouterLink>
+        <RouterLink to="/contact" class="hover:text-white">고객센터</RouterLink>
       </div>
-
-      <div class="max-w-4xl mx-auto text-sm leading-6">
-        <p class="font-semibold text-white mb-2">한국HRD훈련지원센터</p>
-        <p>
-          대표자: 손민성 | 사업자등록번호: 123-45-6789 | 통신판매업신고번호: 제2025-지니-0001호  
-          <br />TEL: 1234-1234 | Email: genie@naver.com | 개인정보보호책임자: 손민성
-        </p>
-        <p class="mt-3">주소: 서울특별시 서대문구 어쩌고</p>
-        <p class="mt-3 opacity-75">
-          본 사이트의 콘텐츠는 저작권법의 보호를 받으며 무단 복제 및 배포를 금합니다.
-        </p>
-      </div>
+      <p class="font-semibold text-white mb-2">TRN 기관 포털</p>
+      <p>
+        대표자: 손민성 | 사업자등록번호: 123-45-6789 |
+        신고번호: 제2025-TRN-0001호 <br />TEL: 1234-1234 | Email:
+        trn@naver.com | 개인정보보호책임자: 손민성
+      </p>
+      <p class="mt-3">주소: 서울특별시 서대문구 어쩌고</p>
     </footer>
+
+    <!-- 위로 가기 버튼 -->
+    <button
+      v-if="showTop"
+      @click="scrollTopSmooth"
+      class="fixed bottom-6 right-6 z-50 rounded-full shadow-lg bg-govblue text-white w-12 h-12 hover:bg-blue-700"
+    >
+      ↑
+    </button>
   </div>
 </template>
 
-<style scoped>
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.8s;
-}
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
+<style>
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 </style>
