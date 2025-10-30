@@ -1,15 +1,15 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
-import { eventBus } from '@/eventBus' // ✅ 새로 추가 (로그인 즉시 반영용)
+import { eventBus } from '@/eventBus' 
 import trnLogo from '@/images/genie.png'
 
 const dark = ref(false)
 const showTop = ref(false)
-const username = ref(eventBus.username) // ✅ eventBus에서 username 실시간 반영
+const username = ref(eventBus.username)
 const router = useRouter()
 
-// eventBus.username 변화 감시해서 즉시 반영
+
 watch(
   () => eventBus.username,
   (newVal) => {
@@ -38,7 +38,7 @@ function scrollTopSmooth() {
 }
 function logout() {
   localStorage.removeItem('trn.username')
-  eventBus.clear() // ✅ eventBus에 반영
+  eventBus.clear() 
   router.push('/')
 }
 </script>
