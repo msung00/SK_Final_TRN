@@ -2,7 +2,7 @@
 
 <p align="center">
   <b>Training & Regulation Network Portal</b><br>
-  Vue.js + TailwindCSS 기반 교육육 훈련·민원 포털<br>
+  Vue.js + TailwindCSS 기반 교육용 훈련·민원 포털<br>
   <i>ISMS-P 인증 구조를 반영한 정보보호 중심형 웹 서비스</i>
 </p>
 
